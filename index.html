@@ -1,72 +1,80 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Scan liên tục</title>
+  <title>Quét BARCODE</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
   <style>
-    body { margin:0; background:black; overflow:hidden }
-    video { width:100vw; height:100vh; object-fit:cover }
+    body {
+      margin: 0;
+      background: black;
+      color: #0f0;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #reader {
+      width: 100vw;
+      height: 100vh;
+    }
     #msg {
-      position:fixed;
-      bottom:16px;
-      width:100%;
-      text-align:center;
-      color:#00ff00;
-      font-size:16px;
-      font-family:Arial,sans-serif;
-      background:rgba(0,0,0,0.6);
-      padding:8px 0;
+      position: fixed;
+      bottom: 10px;
+      width: 100%;
+      background: rgba(0,0,0,0.7);
+      padding: 8px 0;
+      font-size: 16px;
     }
   </style>
 </head>
+
 <body>
 
-<video id="video" autoplay playsinline></video>
-<div id="msg">Đang khởi động camera…</div>
+<div id="reader"></div>
+<div id="msg">📦 Đưa BARCODE vào camera</div>
 
-<script src="https://unpkg.com/@zxing/library@latest"></script>
 <script>
   const msg = document.getElementById("msg");
-  const codeReader = new ZXing.BrowserBarcodeReader();
   let lock = false;
 
-  codeReader.getVideoInputDevices()
-    .then(devices => {
-      if (devices.length === 0) {
-        msg.innerText = "❌ Không tìm thấy camera";
-        return;
-      }
+  function onScanSuccess(text, result) {
+    if (lock) return;
+    lock = true;
 
-      const cameraId = devices[0].deviceId;
-      msg.innerText = "📷 Đưa mã vạch vào camera";
+    msg.innerText = "✅ Đã quét: " + text;
 
-      codeReader.decodeFromVideoDevice(cameraId, "video", (result, err) => {
-        if (result && !lock) {
-          lock = true;
-          const code = result.text;
-
-          msg.innerText = "✅ Đã quét: " + code;
-
-          fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: "barcode=" + encodeURIComponent(code)
-          });
-
-          navigator.vibrate?.(100);
-
-          setTimeout(() => {
-            lock = false;
-            msg.innerText = "📷 Đưa mã vạch vào camera";
-          }, 1200);
-        }
-      });
-    })
-    .catch(err => {
-      msg.innerText = "❌ Lỗi camera: " + err;
+    fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: "barcode=" + encodeURIComponent(text)
     });
-</script>
 
-</body>
-</html>
+    navigator.vibrate?.(100);
+
+    setTimeout(() => {
+      lock = false;
+      msg.innerText = "📦 Đưa BARCODE vào camera";
+    }, 1200);
+  }
+
+  const html5QrCode = new Html5Qrcode("reader");
+
+  Html5Qrcode.getCameras().then(cameras => {
+    if (!cameras.length) {
+      msg.innerText = "❌ Không tìm thấy camera";
+      return;
+    }
+
+    html5QrCode.start(
+      cameras[0].id,
+      {
+        fps: 10,
+        qrbox: { width: 300, height: 150 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
