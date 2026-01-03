@@ -1,84 +1,60 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Quét BARCODE</title>
+  <title>Scan barcode</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <script src="https://unpkg.com/html5-qrcode"></script>
-
   <style>
-    body { margin:0; background:black; color:#0f0; font-family:Arial }
-    #reader { width:100vw; height:80vh }
+    body { margin:0; background:black; overflow:hidden }
+    video { width:100vw; height:100vh; object-fit:cover }
     #msg {
-      position:fixed; bottom:60px; width:100%;
-      text-align:center; background:rgba(0,0,0,.7); padding:8px
-    }
-    #btn {
-      position:fixed; bottom:10px; left:50%;
-      transform:translateX(-50%);
-      padding:12px 20px;
+      position:fixed;
+      bottom:16px;
+      width:100%;
+      text-align:center;
+      color:#00ff00;
       font-size:16px;
+      font-family:Arial,sans-serif;
+      background:rgba(0,0,0,0.5);
+      padding:6px 0;
     }
   </style>
 </head>
-
 <body>
 
-<div id="reader"></div>
-<div id="msg">👉 Bấm nút để bắt đầu quét</div>
-<button id="btn">▶️ BẮT ĐẦU QUÉT</button>
+<video id="video" autoplay playsinline></video>
+<div id="msg">Đang quét BARCODE…</div>
 
+<script src="https://unpkg.com/@zxing/library@latest"></script>
 <script>
+  const video = document.getElementById("video");
   const msg = document.getElementById("msg");
-  const btn = document.getElementById("btn");
+
+  // 🔴 ĐIỂM QUAN TRỌNG: MultiFormatReader
+  const reader = new ZXing.BrowserMultiFormatReader();
   let lock = false;
-  let scanner;
 
-  btn.onclick = async () => {
-    btn.disabled = true;
-    msg.innerText = "📷 Đưa BARCODE vào camera";
+  reader.decodeFromVideoDevice(null, video, (result, err) => {
+    if (result && !lock) {
+      lock = true;
 
-    scanner = new Html5Qrcode("reader");
-    const cameras = await Html5Qrcode.getCameras();
-    if (!cameras.length) {
-      msg.innerText = "❌ Không có camera";
-      return;
+      const code = result.text;
+      msg.innerText = "✅ Đã quét: " + code;
+
+      fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "barcode=" + encodeURIComponent(code)
+      });
+
+      navigator.vibrate?.(100);
+
+      setTimeout(() => {
+        lock = false;
+        msg.innerText = "Đang quét BARCODE…";
+      }, 1200);
     }
-
-    scanner.start(
-      cameras[0].id,
-      {
-        fps: 10,
-        qrbox: { width: 320, height: 160 },
-        formatsToSupport: [
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.UPC_A
-        ]
-      },
-      (text) => {
-        if (lock) return;
-        lock = true;
-
-        msg.innerText = "✅ Đã quét: " + text;
-
-        fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: "barcode=" + encodeURIComponent(text)
-        });
-
-        navigator.vibrate?.(100);
-
-        setTimeout(() => {
-          lock = false;
-          msg.innerText = "📷 Đưa BARCODE vào camera";
-        }, 1200);
-      }
-    );
-  };
+  });
 </script>
 
 </body>
