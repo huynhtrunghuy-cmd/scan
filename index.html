@@ -32,7 +32,12 @@
       lock = true;
 
       const code = res.text;
-      console.log("SCANNED:", code);
+      fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
+  method: "POST",
+  headers: {"Content-Type":"application/json"},
+  body: JSON.stringify({ barcode: code })
+});
+
 
       navigator.vibrate?.(100);
 
@@ -42,4 +47,5 @@
 </script>
 
 </body>
+
 </html>
