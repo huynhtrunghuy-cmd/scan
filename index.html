@@ -3,67 +3,69 @@
 <head>
   <meta charset="utf-8">
   <title>Scan liên tục</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body {
-      margin: 0;
-      background: black;
-      overflow: hidden;
-    }
-    video {
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-    }
+    body { margin:0; background:black; overflow:hidden }
+    video { width:100vw; height:100vh; object-fit:cover }
     #msg {
-      position: fixed;
-      bottom: 16px;
-      width: 100%;
-      text-align: center;
-      color: #00ff00;
-      font-size: 16px;
-      font-family: Arial, sans-serif;
-      background: rgba(0,0,0,0.5);
-      padding: 6px 0;
+      position:fixed;
+      bottom:16px;
+      width:100%;
+      text-align:center;
+      color:#00ff00;
+      font-size:16px;
+      font-family:Arial,sans-serif;
+      background:rgba(0,0,0,0.6);
+      padding:8px 0;
     }
   </style>
 </head>
 <body>
 
-<video id="video" autoplay></video>
-<div id="msg">Đang quét mã vạch…</div>
+<video id="video" autoplay playsinline></video>
+<div id="msg">Đang khởi động camera…</div>
 
 <script src="https://unpkg.com/@zxing/library@latest"></script>
-
 <script>
-  const video = document.getElementById("video");
   const msg = document.getElementById("msg");
-
-  const reader = new ZXing.BrowserBarcodeReader();
+  const codeReader = new ZXing.BrowserBarcodeReader();
   let lock = false;
 
-  reader.decodeFromVideoDevice(null, video, (result, err) => {
-    if (result && !lock) {
-      lock = true;
+  codeReader.getVideoInputDevices()
+    .then(devices => {
+      if (devices.length === 0) {
+        msg.innerText = "❌ Không tìm thấy camera";
+        return;
+      }
 
-      const code = result.text;
-      msg.innerText = "Đã quét: " + code;
+      const cameraId = devices[0].deviceId;
+      msg.innerText = "📷 Đưa mã vạch vào camera";
 
-      fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: "barcode=" + encodeURIComponent(code)
+      codeReader.decodeFromVideoDevice(cameraId, "video", (result, err) => {
+        if (result && !lock) {
+          lock = true;
+          const code = result.text;
+
+          msg.innerText = "✅ Đã quét: " + code;
+
+          fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "barcode=" + encodeURIComponent(code)
+          });
+
+          navigator.vibrate?.(100);
+
+          setTimeout(() => {
+            lock = false;
+            msg.innerText = "📷 Đưa mã vạch vào camera";
+          }, 1200);
+        }
       });
-
-      if (navigator.vibrate) navigator.vibrate(100);
-
-      setTimeout(() => {
-        lock = false;
-        msg.innerText = "Đang quét mã vạch…";
-      }, 1200);
-    }
-  });
+    })
+    .catch(err => {
+      msg.innerText = "❌ Lỗi camera: " + err;
+    });
 </script>
 
 </body>
