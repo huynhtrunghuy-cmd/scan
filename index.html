@@ -8,24 +8,17 @@
   <script src="https://unpkg.com/html5-qrcode"></script>
 
   <style>
-    body {
-      margin: 0;
-      background: black;
-      color: #0f0;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-    #reader {
-      width: 100vw;
-      height: 100vh;
-    }
+    body { margin:0; background:black; color:#0f0; font-family:Arial }
+    #reader { width:100vw; height:80vh }
     #msg {
-      position: fixed;
-      bottom: 10px;
-      width: 100%;
-      background: rgba(0,0,0,0.7);
-      padding: 8px 0;
-      font-size: 16px;
+      position:fixed; bottom:60px; width:100%;
+      text-align:center; background:rgba(0,0,0,.7); padding:8px
+    }
+    #btn {
+      position:fixed; bottom:10px; left:50%;
+      transform:translateX(-50%);
+      padding:12px 20px;
+      font-size:16px;
     }
   </style>
 </head>
@@ -33,48 +26,60 @@
 <body>
 
 <div id="reader"></div>
-<div id="msg">📦 Đưa BARCODE vào camera</div>
+<div id="msg">👉 Bấm nút để bắt đầu quét</div>
+<button id="btn">▶️ BẮT ĐẦU QUÉT</button>
 
 <script>
   const msg = document.getElementById("msg");
+  const btn = document.getElementById("btn");
   let lock = false;
+  let scanner;
 
-  function onScanSuccess(text, result) {
-    if (lock) return;
-    lock = true;
+  btn.onclick = async () => {
+    btn.disabled = true;
+    msg.innerText = "📷 Đưa BARCODE vào camera";
 
-    msg.innerText = "✅ Đã quét: " + text;
-
-    fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: "barcode=" + encodeURIComponent(text)
-    });
-
-    navigator.vibrate?.(100);
-
-    setTimeout(() => {
-      lock = false;
-      msg.innerText = "📦 Đưa BARCODE vào camera";
-    }, 1200);
-  }
-
-  const html5QrCode = new Html5Qrcode("reader");
-
-  Html5Qrcode.getCameras().then(cameras => {
+    scanner = new Html5Qrcode("reader");
+    const cameras = await Html5Qrcode.getCameras();
     if (!cameras.length) {
-      msg.innerText = "❌ Không tìm thấy camera";
+      msg.innerText = "❌ Không có camera";
       return;
     }
 
-    html5QrCode.start(
+    scanner.start(
       cameras[0].id,
       {
         fps: 10,
-        qrbox: { width: 300, height: 150 },
+        qrbox: { width: 320, height: 160 },
         formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_A
+        ]
+      },
+      (text) => {
+        if (lock) return;
+        lock = true;
+
+        msg.innerText = "✅ Đã quét: " + text;
+
+        fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: "barcode=" + encodeURIComponent(text)
+        });
+
+        navigator.vibrate?.(100);
+
+        setTimeout(() => {
+          lock = false;
+          msg.innerText = "📷 Đưa BARCODE vào camera";
+        }, 1200);
+      }
+    );
+  };
+</script>
+
+</body>
+</html>
