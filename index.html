@@ -32,12 +32,11 @@
 <video id="video" autoplay></video>
 <div id="msg">Đang quét mã vạch…</div>
 
-<!-- ZXing -->
 <script src="https://unpkg.com/@zxing/library@latest"></script>
 
 <script>
   const video = document.getElementById("video");
-  const msg   = document.getElementById("msg");
+  const msg = document.getElementById("msg");
 
   const reader = new ZXing.BrowserBarcodeReader();
   let lock = false;
@@ -47,3 +46,25 @@
       lock = true;
 
       const code = result.text;
+      msg.innerText = "Đã quét: " + code;
+
+      fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: "barcode=" + encodeURIComponent(code)
+      });
+
+      if (navigator.vibrate) navigator.vibrate(100);
+
+      setTimeout(() => {
+        lock = false;
+        msg.innerText = "Đang quét mã vạch…";
+      }, 1200);
+    }
+  });
+</script>
+
+</body>
+</html>
