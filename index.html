@@ -32,6 +32,12 @@
       lock = true;
 
       const code = res.text;
+      fetch("LINK_WEB_APP_CỦA_MÀY", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ barcode: code })
+});
+
       fetch("https://script.google.com/macros/s/AKfycbz9r9d2kdLL0npdPFuEd-tzq03mlM1Pps0hYKKlELCmaDHvjTERD871noMJKGaKCx5kHA/exec", {
   method: "POST",
   headers: {"Content-Type":"application/json"},
@@ -49,3 +55,4 @@
 </body>
 
 </html>
+
